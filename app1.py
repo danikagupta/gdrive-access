@@ -1,3 +1,9 @@
+#
+# This works locally but not in Streamlit Sharing. 
+# The reason is that the localost redirect doesnt work
+#
+
+
 import os
 import streamlit as st
 import google.auth
