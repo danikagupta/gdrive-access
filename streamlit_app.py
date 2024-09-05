@@ -13,15 +13,26 @@ from googleapiclient.discovery import build
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
+def get_redirect_uri():
+    # Get the base URL of the current page
+    base_url = st.get_option("server.baseUrlPath")
+    if base_url:
+       return f"{st.get_option('server.baseUrlPath')}{st.get_option('server.port')}"
+    if 'REDIRECT_URL' in st.secrets:
+        return st.secrets['REDIRECT_URL']
+    print(f"Base URL: {base_url}, st.secrets: {st.secrets}")
+    return "http://localhost:8501"
+
 st.write("Query params")
 st.write(st.query_params)
-print(f"Query parameters: {st.query_params}")
+st.write(f"Redirect URI: {get_redirect_uri()}")
+print(f"Query parameters: {st.query_params} Redirect URI: {get_redirect_uri()}")
 if 'code' in st.query_params:
     code = st.query_params['code']
     print(f"Code is: {code}")
     flow = Flow.from_client_secrets_file(
         'credentials_web.json', SCOPES,
-        redirect_uri='https://improved-system-6pg4wxp44q735rgx-8501.app.github.dev/'
+        redirect_uri=get_redirect_uri()
     )
 
     flow.fetch_token(code=code)
