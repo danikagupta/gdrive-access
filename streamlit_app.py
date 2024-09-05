@@ -5,6 +5,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
+import json
 
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
@@ -17,13 +18,14 @@ def get_token_state(file='token.json'):
             return 'Expired',creds
     else:
         return 'Absent',None
+    
+def get_credentials_info():
+    return json.loads(st.secrets['CREDENTIALS_JSON'])
+
 
 def process_code_state():
     if 'code' in st.query_params:
-        flow = Flow.from_client_secrets_file(
-            'credentials_web.json', SCOPES,
-            redirect_uri=get_redirect_uri()
-            )
+        flow = Flow.from_client_config(get_credentials_info(), SCOPES, redirect_uri=get_redirect_uri())
         flow.fetch_token(code=st.query_params['code'])
         creds = flow.credentials
         print(f"Creds: {creds}")
@@ -55,10 +57,7 @@ def process_code_and_token():
         #st.write("Token has been refreshed.")
         st.session_state['creds'] = creds
     else:
-        flow = Flow.from_client_secrets_file(
-            'credentials_web.json', SCOPES,
-            redirect_uri=get_redirect_uri()
-        )
+        flow = Flow.from_client_config(get_credentials_info(), SCOPES, redirect_uri=get_redirect_uri())
         auth_url, _ = flow.authorization_url(prompt='consent')
         #st.write(f"Please go to this URL to authorize the application: {auth_url}")
         st.markdown(
