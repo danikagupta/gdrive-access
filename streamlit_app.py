@@ -67,29 +67,6 @@ def process_code_and_token():
         auth_url, _ = flow.authorization_url(prompt='consent')
         st.write(f"Please go to this URL to authorize the application: {auth_url}")
 
-aaa="""
-st.write("Query params")
-st.write(st.query_params)
-st.write(f"Redirect URI: {get_redirect_uri()}")
-print(f"Query parameters: {st.query_params} Redirect URI: {get_redirect_uri()}")
-if 'code' in st.query_params:
-    code = st.query_params['code']
-    print(f"Code is: {code}")
-    flow = Flow.from_client_secrets_file(
-        'credentials_web.json', SCOPES,
-        redirect_uri=get_redirect_uri()
-    )
-
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    print(f"Creds: {creds}")
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
-    st.session_state['authenticated'] = True
-
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
-    """
 
 def load_credentials_from_token():
     """
