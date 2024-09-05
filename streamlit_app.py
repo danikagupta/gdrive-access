@@ -4,25 +4,14 @@
 
 import os
 import streamlit as st
-import streamlit.components.v1 as stc
-
-
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
+from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
 
-# If modifying these SCOPES, delete the file token.json.
+# Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-
-stc.html("""
-    <script>
-        const domain = window.location.hostname;
-        const streamlitReturn = window.parent;
-        streamlitReturn.postMessage({ domain: domain }, "*");
-    </script>
-""")
 
 st.write("Query params")
 st.write(st.query_params)
@@ -45,14 +34,41 @@ if 'code' in st.query_params:
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 
-print(f"Authenticated: {st.session_state['authenticated']}")
-
-
-def authenticate():
-    """Authenticate the user and return the credentials."""
-    creds = None
+def load_credentials_from_token():
+    """
+    Load user credentials from the token.json file if it exists.
+    Returns:
+        Credentials object or None if no valid credentials are found.
+    """
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        print(f"Loaded credentials: {creds}")
+        if creds is None:
+            return None
+        if creds.valid:
+            return creds
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            print(f"Refreshed credentials: {creds}")
+            return creds
+    return None
+
+def save_credentials(creds):
+    """
+    Save user credentials to the token.json file.
+    Args:
+        creds: Credentials object to be saved.
+    """
+    with open('token.json', 'w') as token:
+        token.write(creds.to_json())
+
+def authenticate_user():
+    """
+    Authenticate the user using OAuth 2.0 flow and return the credentials.
+    Returns:
+        Credentials object after successful authentication.
+    """
+    creds = load_credentials_from_token()
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -75,33 +91,43 @@ def authenticate():
         st.session_state['authenticated'] = True
     return creds
 
-def list_files(service):
-    """List the first 10 files in the user's Google Drive."""
-    results = service.files().list(
-        pageSize=10, fields="nextPageToken, files(id, name)").execute()
+def list_drive_files(service):
+    """
+    List the first 10 files in the user's Google Drive.
+    Args:
+        service: Google Drive API service instance.
+    Returns:
+        List of files in the user's Google Drive.
+    """
+    results = service.files().list(pageSize=10, fields="nextPageToken, files(id, name)").execute()
     items = results.get('files', [])
     return items
 
-def main():
-    st.title("Google Drive File Lister 5")
-    
-    st.write("Authenticate with Google Drive to list files in your Drive.")
-
-    if st.session_state['authenticated']:
-        creds = authenticate()
-        if creds:
-            service = build('drive', 'v3', credentials=creds)
-            files = list_files(service)
-            
-            if not files:
-                st.write('No files found.')
-            else:
-                st.write('Files:')
-                for item in files:
-                    st.write(f"{item['name']} ({item['id']})")
+def display_files(files):
+    """
+    Display the list of files in the Streamlit app.
+    Args:
+        files: List of files to be displayed.
+    """
+    if not files:
+        st.write('No files found.')
     else:
-        creds=authenticate()
+        st.write('Files:')
+        for item in files:
+            st.write(f"{item['name']} ({item['id']})")
+
+def main():
+    """
+    Main function to run the Streamlit app.
+    """
+    st.title("Google Drive File Lister")
+    st.write("Authenticate with Google Drive to list files in your Drive.")
     
+    creds = authenticate_user()
+    if creds:
+        service = build('drive', 'v3', credentials=creds)
+        files = list_drive_files(service)
+        display_files(files)
 
 if __name__ == '__main__':
     main()
