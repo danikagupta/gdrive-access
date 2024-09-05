@@ -29,10 +29,6 @@ if 'code' in st.query_params:
     print(f"Creds: {creds}")
     with open('token.json', 'w') as token:
         token.write(creds.to_json())
-    st.session_state['authenticated'] = True
-
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
 
 
 def authenticate():
@@ -50,7 +46,6 @@ def authenticate():
             )
             auth_url, _ = flow.authorization_url(prompt='consent')
             st.write(f"Please go to this URL to authorize the application: {auth_url}")
-            
             code = st.text_input("Enter the authorization code:")
             if code:
                 print(f"Code: {code}")
@@ -72,8 +67,8 @@ def main():
     st.title("Google Drive File Lister")
     
     st.write("Authenticate with Google Drive to list files in your Drive.")
-
-    if st.session_state['authenticated']:
+    
+    if st.button("Authenticate"):
         creds = authenticate()
         if creds:
             service = build('drive', 'v3', credentials=creds)
@@ -85,9 +80,6 @@ def main():
                 st.write('Files:')
                 for item in files:
                     st.write(f"{item['name']} ({item['id']})")
-    else:
-        creds=authenticate()
-    
 
 if __name__ == '__main__':
     main()
