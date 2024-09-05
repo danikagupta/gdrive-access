@@ -1,7 +1,3 @@
-#
-# This works, though the flow is slightly clunky. There are multiple browser windows that open. We will improve this.
-#
-
 import os
 import streamlit as st
 import google.auth
@@ -10,7 +6,6 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
 
-# Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
 def get_token_state(file='token.json'):
@@ -46,18 +41,18 @@ def get_redirect_uri():
     return "http://localhost:8501"
 
 def process_code_and_token():
-    st.write("Processing code and token")
+    #st.write("Processing code and token")
     process_code_state()   
-    st.write("Processed code state")
+    #st.write("Processed code state")
     token_state,creds = get_token_state()
-    st.write(f"Token state: {token_state}")
+    #st.write(f"Token state: {token_state}")
     if token_state == 'Valid':
-        st.write("Token is already valid.")
+        #st.write("Token is already valid.")
         st.session_state['creds'] = creds
     elif token_state == 'Expired':
         creds.refresh(Request())
         save_credentials(creds)
-        st.write("Token has been refreshed.")
+        #st.write("Token has been refreshed.")
         st.session_state['creds'] = creds
     else:
         flow = Flow.from_client_secrets_file(
@@ -65,105 +60,38 @@ def process_code_and_token():
             redirect_uri=get_redirect_uri()
         )
         auth_url, _ = flow.authorization_url(prompt='consent')
-        st.write(f"Please go to this URL to authorize the application: {auth_url}")
-
-
-def load_credentials_from_token():
-    """
-    Load user credentials from the token.json file if it exists.
-    Returns:
-        Credentials object or None if no valid credentials are found.
-    """
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        print(f"Loaded credentials: {creds}")
-        if creds is None:
-            return None
-        if creds.valid:
-            return creds
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            print(f"Refreshed credentials: {creds}")
-            return creds
-    return None
+        #st.write(f"Please go to this URL to authorize the application: {auth_url}")
+        st.markdown(
+            f'<a href="{auth_url}" style="display: inline-block; padding: 12px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;"  target="_blank">Authenticate</a>',
+            unsafe_allow_html=True
+        )
 
 def save_credentials(creds):
-    """
-    Save user credentials to the token.json file.
-    Args:
-        creds: Credentials object to be saved.
-    """
     with open('token.json', 'w') as token:
         token.write(creds.to_json())
 
-def authenticate_user():
-    """
-    Authenticate the user using OAuth 2.0 flow and return the credentials.
-    Returns:
-        Credentials object after successful authentication.
-    """
-    creds = load_credentials_from_token()
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = Flow.from_client_secrets_file(
-                'credentials_web.json', SCOPES,
-                redirect_uri='https://improved-system-6pg4wxp44q735rgx-8501.app.github.dev/'
-            )
-            auth_url, _ = flow.authorization_url(prompt='consent')
-            st.write(f"Please go to this URL to authorize the application: {auth_url}")
-        st.session_state['authenticated'] = True
-    return creds
-
 def list_drive_files(service):
-    """
-    List the first 10 files in the user's Google Drive.
-    Args:
-        service: Google Drive API service instance.
-    Returns:
-        List of files in the user's Google Drive.
-    """
-    results = service.files().list(pageSize=10, fields="nextPageToken, files(id, name)").execute()
+    results = service.files().list(pageSize=50, fields="nextPageToken, files(name, size, modifiedTime, webViewLink, id)").execute()
     items = results.get('files', [])
     return items
 
 def display_files(files):
-    """
-    Display the list of files in the Streamlit app.
-    Args:
-        files: List of files to be displayed.
-    """
     if not files:
         st.write('No files found.')
     else:
-        st.write('Files:')
-        for item in files:
-            st.write(f"{item['name']} ({item['id']})")
+        st.dataframe(files, column_order=['name', 'size', 'modifiedTime', 'webViewLink', 'id'])
+        #st.write('Files:')
+        #for item in files:
+        #    st.write(f"{item['name']} ({item['id']})")
 
 def main():
-    """
-    Main function to run the Streamlit app.
-    """
     st.title("Google Drive File Lister")
-    st.write("Authenticate with Google Drive to list files in your Drive.")
-    
-    creds = authenticate_user()
-    if creds:
-        service = build('drive', 'v3', credentials=creds)
-        files = list_drive_files(service)
-        display_files(files)
-
-
-def main_new_flow():
-    st.title("GDFL V0.2")
     process_code_and_token()
     if 'creds' in st.session_state:
-        st.write("Got creds")
+        #st.write("Got creds")
         service = build('drive', 'v3', credentials=st.session_state['creds'])
         files = list_drive_files(service)
         display_files(files)
 
 if __name__ == '__main__':
-    #main()
-    main_new_flow()
+    main()
