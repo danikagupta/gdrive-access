@@ -13,6 +13,28 @@ from googleapiclient.discovery import build
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 
+def get_token_state(file='token.json'):
+    if os.path.exists(file):
+        creds = Credentials.from_authorized_user_file(file, SCOPES)
+        if creds and creds.valid:
+            return 'Valid',creds
+        else:
+            return 'Expired',creds
+    else:
+        return 'Absent',None
+
+def process_code_state():
+    if 'code' in st.query_params:
+        flow = Flow.from_client_secrets_file(
+            'credentials_web.json', SCOPES,
+            redirect_uri=get_redirect_uri()
+            )
+        flow.fetch_token(code=st.query_params['code'])
+        creds = flow.credentials
+        print(f"Creds: {creds}")
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
 def get_redirect_uri():
     # Get the base URL of the current page
     base_url = st.get_option("server.baseUrlPath")
@@ -23,6 +45,29 @@ def get_redirect_uri():
     print(f"Base URL: {base_url}, st.secrets: {st.secrets}")
     return "http://localhost:8501"
 
+def process_code_and_token():
+    st.write("Processing code and token")
+    process_code_state()   
+    st.write("Processed code state")
+    token_state,creds = get_token_state()
+    st.write(f"Token state: {token_state}")
+    if token_state == 'Valid':
+        st.write("Token is already valid.")
+        st.session_state['creds'] = creds
+    elif token_state == 'Expired':
+        creds.refresh(Request())
+        save_credentials(creds)
+        st.write("Token has been refreshed.")
+        st.session_state['creds'] = creds
+    else:
+        flow = Flow.from_client_secrets_file(
+            'credentials_web.json', SCOPES,
+            redirect_uri=get_redirect_uri()
+        )
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        st.write(f"Please go to this URL to authorize the application: {auth_url}")
+
+aaa="""
 st.write("Query params")
 st.write(st.query_params)
 st.write(f"Redirect URI: {get_redirect_uri()}")
@@ -44,6 +89,7 @@ if 'code' in st.query_params:
 
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
+    """
 
 def load_credentials_from_token():
     """
@@ -90,15 +136,6 @@ def authenticate_user():
             )
             auth_url, _ = flow.authorization_url(prompt='consent')
             st.write(f"Please go to this URL to authorize the application: {auth_url}")
-            
-            code = st.text_input("Enter the authorization code:")
-            if code:
-                print(f"Code: {code}")
-                flow.fetch_token(code=code)
-                creds = flow.credentials
-                print(f"Creds: {creds}")
-                with open('token.json', 'w') as token:
-                    token.write(creds.to_json())
         st.session_state['authenticated'] = True
     return creds
 
@@ -140,5 +177,16 @@ def main():
         files = list_drive_files(service)
         display_files(files)
 
+
+def main_new_flow():
+    st.title("GDFL V0.2")
+    process_code_and_token()
+    if 'creds' in st.session_state:
+        st.write("Got creds")
+        service = build('drive', 'v3', credentials=st.session_state['creds'])
+        files = list_drive_files(service)
+        display_files(files)
+
 if __name__ == '__main__':
-    main()
+    #main()
+    main_new_flow()
