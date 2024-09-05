@@ -1,7 +1,3 @@
-#
-# This works, though the flow is slightly clunky. There are multiple browser windows that open. We will improve this.
-#
-
 import os
 import streamlit as st
 import streamlit.components.v1 as stc
