@@ -1,5 +1,5 @@
 #
-# This works, though the flow is slightly clunky. There are multiple browser windows that open. We will improve this.
+# Failed as OOB has been deprecated due to phishing concerns
 #
 
 import os
@@ -7,29 +7,11 @@ import streamlit as st
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 # If modifying these SCOPES, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-
-st.write("Query params")
-st.write(st.query_params)
-print(f"Query parameters: {st.query_params}")
-if 'code' in st.query_params:
-    code = st.query_params['code']
-    print(f"Code is: {code}")
-    flow = Flow.from_client_secrets_file(
-        'credentials_web.json', SCOPES,
-        redirect_uri='https://improved-system-6pg4wxp44q735rgx-8501.app.github.dev/'
-    )
-
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    print(f"Creds: {creds}")
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
-
 
 def authenticate():
     """Authenticate the user and return the credentials."""
@@ -40,18 +22,14 @@ def authenticate():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = Flow.from_client_secrets_file(
-                'credentials_web.json', SCOPES,
-                redirect_uri='https://improved-system-6pg4wxp44q735rgx-8501.app.github.dev/'
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
             auth_url, _ = flow.authorization_url(prompt='consent')
             st.write(f"Please go to this URL to authorize the application: {auth_url}")
             code = st.text_input("Enter the authorization code:")
             if code:
-                print(f"Code: {code}")
                 flow.fetch_token(code=code)
                 creds = flow.credentials
-                print(f"Creds: {creds}")
                 with open('token.json', 'w') as token:
                     token.write(creds.to_json())
     return creds
@@ -64,7 +42,7 @@ def list_files(service):
     return items
 
 def main():
-    st.title("Google Drive File Lister")
+    st.title("Google Drive Lister Take 4")
     
     st.write("Authenticate with Google Drive to list files in your Drive.")
     

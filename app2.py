@@ -1,5 +1,5 @@
 #
-# This works, though the flow is slightly clunky. There are multiple browser windows that open. We will improve this.
+# This was an attempt to use web app with redirect url. did not work.
 #
 
 import os
@@ -16,20 +16,6 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
 st.write("Query params")
 st.write(st.query_params)
 print(f"Query parameters: {st.query_params}")
-if 'code' in st.query_params:
-    code = st.query_params['code']
-    print(f"Code is: {code}")
-    flow = Flow.from_client_secrets_file(
-        'credentials_web.json', SCOPES,
-        redirect_uri='https://improved-system-6pg4wxp44q735rgx-8501.app.github.dev/'
-    )
-
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    print(f"Creds: {creds}")
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
-
 
 def authenticate():
     """Authenticate the user and return the credentials."""
